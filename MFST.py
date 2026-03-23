@@ -109,15 +109,6 @@ def train(x_train: torch.Tensor, y_train: torch.Tensor,
     logname = logname1 + logname2
     logging.info(logname)
 
-    # model_dir = os.path.join(os.path.dirname(log_path), "saved_models")
-    # os.makedirs(model_dir, exist_ok=True)
-    #
-    # 生成唯一模型文件名
-    # model_name = f"{args.model}_ac_{args.dataset}_a{args.a}_f{args.f}_p{args.p}_pr{args.pr}.pth"
-    # model_path = os.path.join(model_dir, model_name)
-    # torch.save(model.state_dict(), model_path)
-    # logging.info(f"Saved final model to {model_path}")
-
     return test_acc, test_bca, asr_results
 
 
@@ -290,10 +281,10 @@ if __name__ == '__main__':
     logging.info(f"⏳ 程序暂停于: {start_time.strftime('%Y-%m-%d %H:%M:%S')}")
     logging.info(f"⏱️ 将在 {wait_hours} 小时后继续执行...")
 
-    # 暂停程序
+
     time.sleep(wait_seconds)
 
-    # 继续执行后续代码
+
     end_time = datetime.datetime.now()
     logging.info(f"✅ 程序继续于: {end_time.strftime('%Y-%m-%d %H:%M:%S')}")
     logging.info(f"⌛ 已等待: {round((end_time - start_time).total_seconds() / 3600, 2)} 小时")
@@ -340,12 +331,6 @@ if __name__ == '__main__':
                         x_train = np.concatenate([x_train, x_poison], axis=0)
                         y_train = np.concatenate([y_train, y_poison], axis=0)
 
-
-
-
-
-
-
             # leave one subject validation
             _, x_test, _ = load(args.dataset, s_id[s], clean=True, downsample=False,process=args.process)
             logging.info(f'train: {x_train.shape}, test: {x_test.shape}')
@@ -376,20 +361,6 @@ if __name__ == '__main__':
                 torch.from_numpy(x_train).type(torch.FloatTensor))
             y_train = Variable(
                 torch.from_numpy(y_train).type(torch.LongTensor))
-            # x_validation = Variable(
-            #     torch.from_numpy(x_validation).type(torch.FloatTensor))
-            # y_validation = Variable(
-            #     torch.from_numpy(y_validation).type(torch.LongTensor))
-            # x_test = Variable(torch.from_numpy(x_test).type(torch.FloatTensor))
-            # x_test_poison0 = Variable(torch.from_numpy(x_test_poison0).type(torch.FloatTensor))
-            # y_test_poison0 = Variable(torch.from_numpy(y_test_poison0).type(torch.FloatTensor))
-            # x_test_poison1 = Variable(torch.from_numpy(x_test_poison1).type(torch.FloatTensor))
-            # y_test_poison1 = Variable(torch.from_numpy(y_test_poison1).type(torch.FloatTensor))
-            # x_test_poison2 = Variable(torch.from_numpy(x_test_poison2).type(torch.FloatTensor))
-            # y_test_poison2 = Variable(torch.from_numpy(y_test_poison2).type(torch.FloatTensor))
-            # x_test_poison3= Variable(torch.from_numpy(x_test_poison3).type(torch.FloatTensor))
-            # y_test_poison3 = Variable(torch.from_numpy(y_test_poison3).type(torch.FloatTensor))
-            # acc, bca,asr0, asr1, asr2, asr3 = train(x_train, y_train, None, None, x_test , y_test , x_test_poison0 , y_test_poison0 , x_test_poison1 , y_test_poison1 , x_test_poison2, y_test_poison2 , x_test_poison3 , y_test_poison3 , args)
             acc, bca, asr_results = train(x_train, y_train, None, None, test_loader, args)
             accs.append(acc)
             bcas.append(bca)
@@ -409,20 +380,12 @@ if __name__ == '__main__':
         rbcas.append(bcas)
         for t in range(n_class):
             rasrs_dict[f'rasr{t}s'].append(asrs_dict[f'asr{t}s'])
-        # rasr1s.append(asr1s)
-        # rasr2s.append(asr2s)
-        # rasr3s.append(asr3s)
     logging.info(f'ACCs: {np.nanmean(raccs, 1)}')
     logging.info(f'BCAs: {np.nanmean(rbcas, 1)}')
     for t in range(n_class):
         key = f'rasr{t}s'
         logging.info(f'ASRS of target {t}: {np.nanmean(rasrs_dict[key], axis=1)}')
-    # logging.info(f'ASRs of target 0: {np.nanmean(rasr0s, 1)}')
-    # logging.info(f'ASRs of target 1: {np.nanmean(rasr1s, 1)}')
-    # logging.info(f'ASRs of target 2: {np.nanmean(rasr2s, 1)}')
-    # logging.info(f'ASRs of target 3: {np.nanmean(rasr3s, 1)}')
-    # logging.info(f'ALL ACC: {np.nanmean(raccs)} BCA: {np.nanmean(rbcas)} ASR of target 0: {np.nanmean(rasr0s)},ASR of target 1: {np.nanmean(rasr1s)},ASR of target 2: {np.nanmean(rasr2s)},ASR of target 3: {np.nanmean(rasr3s)}')
-    # np.savez(npz_name, raccs=raccs, rbcas=rbcas, rasr0s=rasr0s,rasr1s=rasr1s,rasr2s=rasr2s,rasr3s=rasr3s)
+
     logging.info(f'ALL ACC: {np.nanmean(raccs)} BCA: {np.nanmean(rbcas)} ')
     for t in range(n_class):
         key = f'rasr{t}s'
