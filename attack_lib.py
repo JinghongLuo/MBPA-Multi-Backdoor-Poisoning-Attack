@@ -127,7 +127,7 @@ def PGD(model: nn.Module,
 
     return adv_x
 
-# ..qh?
+
 def PGD_batch(model: nn.Module,
               x: torch.Tensor,
               y: torch.Tensor,
