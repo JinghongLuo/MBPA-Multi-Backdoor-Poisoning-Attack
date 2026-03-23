@@ -10,10 +10,10 @@ import torch.optim as optim
 # from sklearn._loss.tests import test_loss
 from torch.autograd import Variable
 from torch.utils.data import TensorDataset, DataLoader, dataset
-from models import LoadModel, ShallowConvNet, SpatialFilterLayer
+from models import LoadModel
 from utils.pytorch_utils import init_weights, print_args, seed, weight_for_balanced_classes, bca_score, split_data
 from utils.data_loader import load
-import datetime
+import datetime,time
 
 
 def train(x_train: torch.Tensor, y_train: torch.Tensor,
@@ -109,15 +109,6 @@ def train(x_train: torch.Tensor, y_train: torch.Tensor,
     logname = logname1 + logname2
     logging.info(logname)
 
-    # model_dir = os.path.join(os.path.dirname(log_path), "saved_models")
-    # os.makedirs(model_dir, exist_ok=True)
-    #
-    # 生成唯一模型文件名
-    # model_name = f"{args.model}_ac_{args.dataset}_a{args.a}_f{args.f}_p{args.p}_pr{args.pr}.pth"
-    # model_path = os.path.join(model_dir, model_name)
-    # torch.save(model.state_dict(), model_path)
-    # logging.info(f"Saved final model to {model_path}")
-
     return test_acc, test_bca, asr_results
 
 
@@ -164,8 +155,6 @@ def peval1(model: nn.Module, data_loader: DataLoader, args):
             asr = len([x for x in valid_idx if ppreds[x] == args.target_label]) / len(valid_idx)
     return acc, bca, asr
 
-
-
 def peval(model, ptest_loader, args):
     asr_dict = {}
     correct = 0
@@ -208,23 +197,26 @@ def adjust_learning_rate(optimizer: nn.Module, epoch: int, args):
     for param_group in optimizer.param_groups:
         param_group['lr'] = lr
 
-
+#
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Model train')
     parser.add_argument('--gpu_id', type=str, default='0')
     # parser.add_argument('--attacktype', type=str, default='npp', help='attacktype')
-    parser.add_argument('--model', type=str, default='EEGNet')
-    parser.add_argument('--dataset', type=str, default='P300')
+    parser.add_argument('--model', type=str, default='ShallowCNN')
+    parser.add_argument('--dataset', type=str, default='MI4C')
     parser.add_argument('--lr', type=float, default=0.01)
     parser.add_argument('--batch_size', type=int, default=128)
     parser.add_argument('--epochs', type=int, default=200)
     parser.add_argument('--target_label', type=int, default=0)
     parser.add_argument('--muti_label', type=bool, default='True')
     parser.add_argument('--pr', type=float, default=0.03, help='poison_rate')
-    parser.add_argument('--baseline', type=bool, default=True, help='is baseline')
+    parser.add_argument('--baseline', type=bool, default=False, help='is baseline')
     parser.add_argument('--partial', type=float, default=0.25, help='partial rate')
     parser.add_argument('--sap_frac', type=float, default=None, help='sap fraction')
     parser.add_argument('--commit', type=str, default='test')
+    parser.add_argument('--process', type=str, default='ar')
+    parser.add_argument('--wait_time', type=int, default=0)
+
 
     args = parser.parse_args()
 
@@ -233,28 +225,35 @@ if __name__ == '__main__':
     n_classes = {'ERN': 2, 'P300': 2, 'MI4C': 4}
     size = {'ERN': 56, 'P300': 32, 'MI4C': 22}
 
+    #
     subject_number = subject_numbers[args.dataset]
     n_class = n_classes[args.dataset]
     args.partial = 1.0 / n_class
+    channel_idx1 = np.random.permutation(np.arange(size[args.dataset]))
+    # print(channel_idx1[0])
     # downsample = False if args.dataset == 'MI4C' else True
     downsample = True if args.dataset != 'MI4C' else False
     # path build
-    log_path = '/mnt/data1/ljh/results/log/Fliter_new/'
+    log_path = '/mnt/data1/ljh/results/log/Filter_new/'
     if args.muti_label:
         log_path += 'all_target/'
     else:
         log_path += f'one_target:{args.target_label}/'
+    log_path += f'{args.process}/'
     log_path += f'{args.dataset}/{args.model}/'
     if not os.path.exists(log_path):
         os.makedirs(log_path)
     log_name = log_path + ('baseline.log' if args.baseline else 'Filter.log')
 
-    npz_path = '/mnt/data1/ljh/result1214/npz/Fliter_new/'
+    npz_path = '/mnt/data1/ljh/result1214/npz/Filter_new/'
+
     if args.muti_label:
         npz_path += 'all_target/'
     else:
         npz_path += f'one_target:{args.target_label}/'
+    npz_path += f'{args.process}/'
     npz_path += f'{args.dataset}/{args.model}/'
+
     if not os.path.exists(npz_path):
         os.makedirs(npz_path)
     npz_name = npz_path + ('baseline.log' if args.baseline else 'Filter.npz')
@@ -271,8 +270,22 @@ if __name__ == '__main__':
     # save logging
     save_log = logging.FileHandler(log_name, mode='w', encoding='utf8')
     logger.addHandler(save_log)
+    wait_hours = args.wait_time
 
     logging.info(print_args(args) + '\n')
+    wait_seconds = wait_hours * 3600
+
+    # 打印开始时间
+    start_time = datetime.datetime.now()
+    logging.info(f"⏳ 程序暂停于: {start_time.strftime('%Y-%m-%d %H:%M:%S')}")
+    logging.info(f"⏱️ 将在 {wait_hours} 小时后继续执行...")
+
+
+    time.sleep(wait_seconds)
+
+    end_time = datetime.datetime.now()
+    logging.info(f"✅ 程序继续于: {end_time.strftime('%Y-%m-%d %H:%M:%S')}")
+    logging.info(f"⌛ 已等待: {round((end_time - start_time).total_seconds() / 3600, 2)} 小时")
 
     # raccs, rbcas, rasr0s,rasr1s,rasr2s,rasr3s = [], [], [],[],[],[]
     raccs, rbcas = [], []
@@ -291,44 +304,24 @@ if __name__ == '__main__':
             train_idx.remove(s_id[s])
             for i in train_idx:
                 _, x_i, y_i = load(args.dataset, i, clean=True,
-                                   downsample=downsample)
+                                   downsample=downsample, process=args.process)
                 x_train.append(x_i)
                 y_train.append(y_i)
+
             x_train = np.concatenate(x_train, axis=0)
             y_train = np.concatenate(y_train, axis=0)
 
             # x_train, y_train, x_validation, y_validation = split_data([x_train, y_train], split=0.8, shuffle=True)
             # create poison data
-            filter = []
+
             if args.muti_label:
-
-                perturb_num = np.random.permutation(np.arange(size[args.dataset]))
-                perturb = torch.randn((size[args.dataset], size[args.dataset])).to(args.device) * 2e-1
-                partial = 1 / n_class
-                for id in range(n_class):
-                    adv_filter_layer = SpatialFilterLayer(size[args.dataset]).to(args.device)
-                    # perturb_num = int(0.5 * x.shape[2])
-
-                    # it seems that there is a mistake !!!
-                    # if id == 0:
-                    #     perturb_idx = perturb_num[0:int(size[args.dataset] * partial)].tolist()
-                    # else:
-                    #     perturb_idx = perturb_num[
-                    #                   int(size[args.dataset] * partial * id + 1):int(
-                    #                       size[args.dataset] * partial * (id + 1))].tolist()
-                    perturb_idx = perturb_num[
-                                  int(size[args.dataset] * partial * id):int(size[args.dataset] * partial * (id + 1))].tolist()
-                    adv_filter_layer.filter.data[perturb_idx, :] += perturb[perturb_idx, :]
-                    filter.append(adv_filter_layer)
                 for w in range(n_class):
-                    _, x_p, y_p = load(args.dataset, s_id[0], clean=True, downsample=False)
+                    _, x_p, y_p = load(args.dataset, s_id[0], clean=False,noise_type='Filter', downsample=False, process=args.process,
+                                       w=w, muti_label=args.muti_label)
                     idx = np.random.permutation(np.arange(len(x_p)))
                     x_poison, y_poison = x_p[idx[:int(args.pr * len(x_train))]], y_p[
                         idx[:int(args.pr * len(x_train))]]
                     # y_poison = y_p[idx[:int(args.pr * len(x_train))]]
-                    x_poison = torch.from_numpy(x_poison).type(torch.FloatTensor)
-                    x_poison = filter[w](x_poison.to(args.device)).detach().cpu()
-                    x_poison = x_poison.numpy()
 
                     y_poison = np.ones(shape=y_poison.shape) * w  # target label
                     if not args.baseline:
@@ -336,72 +329,40 @@ if __name__ == '__main__':
                         y_train = np.concatenate([y_train, y_poison], axis=0)
 
 
+
             # leave one subject validation
-            _, x_test, _ = load(args.dataset, s_id[s], clean=True, downsample=False)
+            _, x_test, _ = load(args.dataset, s_id[s], clean=True, downsample=False,process=args.process)
             logging.info(f'train: {x_train.shape}, test: {x_test.shape}')
             x_test = Variable(torch.from_numpy(x_test).type(torch.FloatTensor))
 
-            # y_test = Variable(torch.from_numpy(y_test).type(torch.LongTensor))
-            # _, x_test_poison0, y_test_poison0 = load(args.dataset, s_id[s], npp_params, clean=False, physical=args.physical,
-            #                             partial=args.partial, downsample=False, muti_label=True, w=0)
-            # y_test_poison0 = np.ones(shape=y_test_poison0.shape) * 0
-            # _, x_test_poison1, y_test_poison1 = load(args.dataset, s_id[s], npp_params, clean=False,
-            #                                        physical=args.physical,
-            #                                        partial=args.partial, downsample=False, muti_label=True, w=1)
-            # y_test_poison1 = np.ones(shape=y_test_poison1.shape) * 1
-            # _, x_test_poison2, y_test_poison2 = load(args.dataset, s_id[s], npp_params, clean=False,
-            #                                        physical=args.physical,
-            #                                        partial=args.partial, downsample=False, muti_label=True, w=2)
-            # y_test_poison2 = np.ones(shape=y_test_poison2.shape) * 2
-            # _, x_test_poison3, y_test_poison3 = load(args.dataset, s_id[s], npp_params, clean=False,
-            #                                        physical=args.physical,
-            #                                        partial=args.partial, downsample=False, muti_label=True, w=3)
-            # y_test_poison3 = np.ones(shape=y_test_poison3.shape) * 3
-            # 生成毒化测试数据,包括干净数据一起打包
-            # test_loader = DataLoader(dataset=TensorDataset(x_test, y_test,),
-            #                          batch_size=args.batch_size,
-            #                          shuffle=True,
-            #                          drop_last=False)
+
             test_loader = []
             for target_label in range(n_class):
-                _, x_p, y_original = load(args.dataset, s_id[s], clean=True, downsample=False)
+                # id=channel_idx1[int(size[args.dataset]*args.partial*target_label):int(size[args.dataset]*args.partial*(target_label+1))]
+                _, x_p, y_original = load(args.dataset, s_id[s], clean=False,noise_type='Filter', downsample=False, process=args.process,
+                                           w=target_label, muti_label=args.muti_label)
                 # y_target = np.full_like(y_original, target_label)
                 x_p = Variable(torch.from_numpy(x_p).type(torch.FloatTensor))
-                x_p = filter[target_label](x_p.to(args.device)).detach().cpu()
+
                 y_original = Variable(torch.from_numpy(y_original).type(torch.LongTensor))
                 # y_target = Variable(torch.from_numpy(y_target).type(torch.LongTensor))
                 # 创建DataLoader
                 poison_dataset = TensorDataset(x_test, x_p, y_original)
-                poison_loader = DataLoader(poison_dataset, batch_size=args.batch_size, shuffle=True, drop_last=False)
+                poison_loader = DataLoader(poison_dataset, batch_size=args.batch_size, shuffle=True,
+                                           drop_last=False)
                 test_loader.append(poison_loader)
+
+
 
             x_train = Variable(
                 torch.from_numpy(x_train).type(torch.FloatTensor))
             y_train = Variable(
                 torch.from_numpy(y_train).type(torch.LongTensor))
-            # x_validation = Variable(
-            #     torch.from_numpy(x_validation).type(torch.FloatTensor))
-            # y_validation = Variable(
-            #     torch.from_numpy(y_validation).type(torch.LongTensor))
-            # x_test = Variable(torch.from_numpy(x_test).type(torch.FloatTensor))
-            # x_test_poison0 = Variable(torch.from_numpy(x_test_poison0).type(torch.FloatTensor))
-            # y_test_poison0 = Variable(torch.from_numpy(y_test_poison0).type(torch.FloatTensor))
-            # x_test_poison1 = Variable(torch.from_numpy(x_test_poison1).type(torch.FloatTensor))
-            # y_test_poison1 = Variable(torch.from_numpy(y_test_poison1).type(torch.FloatTensor))
-            # x_test_poison2 = Variable(torch.from_numpy(x_test_poison2).type(torch.FloatTensor))
-            # y_test_poison2 = Variable(torch.from_numpy(y_test_poison2).type(torch.FloatTensor))
-            # x_test_poison3= Variable(torch.from_numpy(x_test_poison3).type(torch.FloatTensor))
-            # y_test_poison3 = Variable(torch.from_numpy(y_test_poison3).type(torch.FloatTensor))
-            # acc, bca,asr0, asr1, asr2, asr3 = train(x_train, y_train, None, None, x_test , y_test , x_test_poison0 , y_test_poison0 , x_test_poison1 , y_test_poison1 , x_test_poison2, y_test_poison2 , x_test_poison3 , y_test_poison3 , args)
             acc, bca, asr_results = train(x_train, y_train, None, None, test_loader, args)
             accs.append(acc)
             bcas.append(bca)
             for t in range(n_class):
                 asrs_dict[f'asr{t}s'].append(asr_results[f'ASR_{t}'])
-            # asr0s.append(asr_results[ASR_0])
-            # asr1s.append(asr_results[ASR_1])
-            # asr2s.append(asr_results[ASR_2])
-            # asr3s.append(asr_results[ASR_3])
         # logging.info(f'Mean ACC: {np.nanmean(accs)}, BCA: {np.nanmean(bcas)}, ASR of target 0: {np.nanmean(asr0s)}, ASR of target 1: {np.nanmean(asr1s)},ASR for target 1: {np.nanmean(asr1s)},ASR for target 2: {np.nanmean(asr2s)},ASR for target 3: {np.nanmean(asr3s)}')
         logging.info(f'Mean ACC: {np.nanmean(accs)}, BCA: {np.nanmean(bcas)}')
         for t in range(n_class):
@@ -420,12 +381,6 @@ if __name__ == '__main__':
     for t in range(n_class):
         key = f'rasr{t}s'
         logging.info(f'ASRS of target {t}: {np.nanmean(rasrs_dict[key], axis=1)}')
-    # logging.info(f'ASRs of target 0: {np.nanmean(rasr0s, 1)}')
-    # logging.info(f'ASRs of target 1: {np.nanmean(rasr1s, 1)}')
-    # logging.info(f'ASRs of target 2: {np.nanmean(rasr2s, 1)}')
-    # logging.info(f'ASRs of target 3: {np.nanmean(rasr3s, 1)}')
-    # logging.info(f'ALL ACC: {np.nanmean(raccs)} BCA: {np.nanmean(rbcas)} ASR of target 0: {np.nanmean(rasr0s)},ASR of target 1: {np.nanmean(rasr1s)},ASR of target 2: {np.nanmean(rasr2s)},ASR of target 3: {np.nanmean(rasr3s)}')
-    # np.savez(npz_name, raccs=raccs, rbcas=rbcas, rasr0s=rasr0s,rasr1s=rasr1s,rasr2s=rasr2s,rasr3s=rasr3s)
     logging.info(f'ALL ACC: {np.nanmean(raccs)} BCA: {np.nanmean(rbcas)} ')
     for t in range(n_class):
         key = f'rasr{t}s'
