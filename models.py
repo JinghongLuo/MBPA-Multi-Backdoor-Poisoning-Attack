@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 from typing import Optional
-# xlxl bxnmdl
+
 
 def CalculateOutSize(blocks, channels, samples):
     '''
@@ -56,68 +56,21 @@ class SAP(nn.Module):
             x_flat = x.reshape(batch_size, -1)
             n_features = x_flat.shape[1]
 
-            # K是抽样预算，不是保留数量
             K = max(1, int(self.frac * n_features))
 
-            # 计算重要性概率
             abs_x = torch.abs(x_flat)
             p = abs_x / (torch.sum(abs_x, dim=1, keepdim=True) + 1e-8)
-
-            # 有放回抽样K次
-            # indices = []
-            # for i in range(batch_size):
-            #     # 对每个样本独立抽样
-            #     sample_indices = torch.multinomial(p[i], K, replacement=True)
-            #     indices.append(sample_indices)
-            # indices = torch.stack(indices)
             indices = torch.multinomial(p, K, replacement=True)
 
-            # 创建二进制mask（记录哪些特征至少被选中一次）
             mask = torch.zeros_like(x_flat)
-            # 使用bincount处理重复抽样
             for i in range(batch_size):
                 count = torch.bincount(indices[i], minlength=n_features)
                 mask[i] = (count > 0).float()
-            # zzn zjsq jxzyb byzxlhh
-            # 计算实际保留比例（用于监控）
-            # actual_retention_ratio = mask.sum() / (batch_size * n_features)
-            # print('Actual retention ratio: ', actual_retention_ratio)
-
-            # 计算缩放因子
             q = 1.0 - torch.pow(1.0 - p, K)  # 被选中至少一次的概率
             scaling = 1.0 / (q + 1e-8)
 
             result = x_flat * mask * scaling
             x=result.reshape(shape)
-            # shape = x.shape
-            # prob = x.clone().reshape(shape[0], -1)
-            #
-            # select_num = int(self.frac * prob.shape[1])
-            #
-            # prob = torch.abs(prob)
-            # prob = prob / torch.sum(prob, dim=1, keepdim=True)
-            # idx = torch.multinomial(prob, select_num,replacement=True)
-            # wtbd www zns zc gcd ytmd gg nwhysmhsd....gggwqsaaamd qygbwchkg zdscsbwwwww www wwww
-            # x = x.reshape(shape[0], -1)
-            # # pruned
-            # scale_factor = torch.zeros_like(x).to(x.device)
-            # selected = torch.gather(prob, dim=1, index=idx)
-            # selected = 1.0 / (1.0 - torch.pow(1 - selected, select_num)+1e-8 )
-            # scale_factor = torch.scatter(scale_factor, dim=1, index=idx, src=selected)
-            # x = scale_factor * x
-            # x = x.reshape(shape)
-            # for i in range(batch_size):
-            #     count = torch.bincount(indices[i], minlength=n_features)
-            #     mask[i] = (count > 0).float()
-            #
-            #     # 计算实际保留比例（用于监控）
-            # actual_retention_ratio = mask.sum() / (batch_size * n_features)
-            #
-            # # 计算缩放因子
-            # q = 1.0 - torch.pow(1.0 - p, K)  # 被选中至少一次的概率
-            # scaling = 1.0 / (q + 1e-8)
-            #
-            # result = x_flat * mask * scaling
         return x
 
 
@@ -296,66 +249,6 @@ class Activation(nn.Module):
         return output
 
 
-# class ShallowConvNet(nn.Module):
-#     def __init__(
-#             self,
-#             n_classes: int,
-#             Chans: int,
-#             Samples: int,
-#             dropoutRate: Optional[float] = 0.5,
-#     ):
-#         super(ShallowConvNet, self).__init__()
-#
-#         self.n_classes = n_classes
-#         self.Chans = Chans
-#         self.Samples = Samples
-#         self.dropoutRate = dropoutRate
-#
-#         self.block1 = nn.Sequential(
-#             nn.Conv2d(in_channels=1, out_channels=40, kernel_size=(1, 13)),
-#             nn.Conv2d(in_channels=40,
-#                       out_channels=40,
-#                       kernel_size=(self.Chans, 1)),
-#             nn.BatchNorm2d(num_features=40),
-#             Activation('square'),
-#             nn.AvgPool2d(kernel_size=(1, 35), stride=(1, 7)),
-#             Activation('log'),
-#             nn.Dropout(self.dropoutRate))
-#
-#         self.classifier_block = nn.Sequential(
-#             nn.Linear(in_features=40*CalculateOutSize([self.block1],
-#                                                    self.Chans, self.Samples),
-#                       out_features=self.n_classes,
-#                       bias=True))
-#
-#     def forward(self, x: torch.Tensor) -> torch.Tensor:
-#         output = self.block1(x)
-#         output = output.reshape(output.size(0), -1)
-#         output = self.classifier_block(output)
-#         return output
-#
-#     def MaxNormConstraint(self):
-#         for n, p in self.block1.named_parameters():
-#             if hasattr(n, 'weight') and (
-#                     not n.__class__.__name__.startswith('BatchNorm')):
-#                 p.data = torch.renorm(p.data, p=2, dim=0, maxnorm=2.0)
-#         for n, p in self.classifier_block.named_parameters():
-#             if n == '0.weight':
-#                 p.data = torch.renorm(p.data, p=2, dim=0, maxnorm=0.5)
-# class Activation(nn.Module):
-#     def __init__(self, type):
-#         super(Activation, self).__init__()
-#         self.type = type
-#
-#     def forward(self, input):
-#         if self.type == 'square':
-#             output = input * input
-#         elif self.type == 'log':
-#             output = torch.log(torch.clamp(input, min=1e-6))
-#         else:
-#             raise Exception('Invalid type !')
-#
-#         return output
 class ShallowConvNet(nn.Module):
     def __init__(
             self,
@@ -392,7 +285,6 @@ class ShallowConvNet(nn.Module):
                                                    self.Chans, self.Samples),
                       out_features=self.n_classes,
                       bias=True))
-    #
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         output = self.block1(x)
         output = output.reshape(output.size(0), -1)
@@ -446,40 +338,3 @@ class FilterLayer(nn.Module):
         return F.lfilter(x, self.A, self.B)
 
 
-class SpatialFilterLayer(nn.Module):
-    def __init__(self, Channels):
-        super(SpatialFilterLayer, self).__init__()
-
-        self.Channels = Channels
-        self.filter = nn.Parameter(torch.zeros(size=(self.Channels, self.Channels)))
-
-    def forward(self, x):
-        return torch.matmul(self.filter + torch.eye(self.Channels).to(x.device), x)
-
-if __name__=='__main__':
-    def test_random_independence():
-        """测试批量抽样 vs 循环抽样的随机独立性"""
-        torch.manual_seed(42)
-
-        p = torch.tensor([
-            [0.5, 0.3, 0.2],
-            [0.2, 0.3, 0.5]
-        ])
-
-        # 方法1: 批量抽样
-        # torch.manual_seed(42)
-        batch_indices = torch.multinomial(p, 2, replacement=True)
-
-        # 方法2: 循环抽样
-        # torch.manual_seed(42)
-        loop_indices = []
-        for i in range(p.shape[0]):
-            loop_indices.append(torch.multinomial(p[i], 2, replacement=True))
-        loop_indices = torch.stack(loop_indices)
-
-        print(f"批量抽样结果: {batch_indices}")
-        print(f"循环抽样结果: {loop_indices}")
-        print(f"结果是否相同: {torch.equal(batch_indices, loop_indices)}")
-
-
-    test_random_independence()
