@@ -67,7 +67,7 @@ def load(data_name, uid, npp_params=[0,0,0], clean=True, physical=False, partial
         #         path = f'/mnt/data1/ljh/data/{data_name}/partial_all_target-{partial}_poisoned-{npp_params[0]}-{npp_params[1]}-{npp_params[2]}/{w}_target/'
 
 
-    #wc ? yxysyj
+
     
     if noise_type != 'npp': path = path.replace('poisoned', f'{noise_type}')
 
@@ -80,7 +80,7 @@ def load(data_name, uid, npp_params=[0,0,0], clean=True, physical=False, partial
             MI4CDataget.get(npp_params, clean=clean, physical=physical, partial=partial, noise_type=noise_type,process=process,muti_label=muti_label,p=list1,sn_amp=sn_amp)
         else:
             raise Exception(f'No such dataset: {data_name}')
-    # wwww wwww wwww wwww wwww wwww wwww www www gsbs zgala qsstkx
+    
 
     data = loadmat(path + f's{uid}.mat')
     eeg = data['eeg']
