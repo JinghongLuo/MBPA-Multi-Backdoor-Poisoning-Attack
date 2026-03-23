@@ -130,30 +130,6 @@ def eval(model: nn.Module, criterion: nn.Module, data_loader: DataLoader, args):
     return loss, acc, bca
 
 
-def peval1(model: nn.Module, data_loader: DataLoader, args):
-    correct = 0
-    labels, preds, ppreds = [], [], []
-    with torch.no_grad():
-        for x, px, y in data_loader:
-            x, px, y = x.to(args.device), px.to(args.device), y.to(args.device)
-            out = model(x)
-
-            pout = model(px)
-            pred = nn.Softmax(dim=1)(out).cpu().argmax(dim=1)
-            ppred = nn.Softmax(dim=1)(pout).cpu().argmax(dim=1)
-            correct += pred.eq(y.cpu().view_as(pred)).sum().item()
-            labels.extend(y.cpu().tolist())
-            preds.extend(pred.tolist())
-            ppreds.extend(ppred.tolist())
-        acc = correct / len(data_loader.dataset)
-        bca = bca_score(labels, preds)
-        valid_idx = [x for x in range(len(labels)) if labels[x] == preds[x] and labels[x] != args.target_label]
-        if len(valid_idx) == 0:
-            asr = np.nan
-        else:
-            asr = len([x for x in valid_idx if ppreds[x] == args.target_label]) / len(valid_idx)
-    return acc, bca, asr
-
 def peval(model, ptest_loader, args):
     asr_dict = {}
     correct = 0
