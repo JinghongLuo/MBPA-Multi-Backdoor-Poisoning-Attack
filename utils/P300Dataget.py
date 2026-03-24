@@ -234,8 +234,7 @@ def get(npp_params, clean, physical=False, partial=None, noise_type='npp', proce
                 filter.append(filter_matrix)
             np.random.set_state(original_np_state)
         for k in tqdm(range(n_class)):
-            # if k==0:continue
-            # save_dirk = save_dir + f'{k}_target/'
+
             if noise_type == 'npp' and p is  None:
                 save_dirk = save_dir + f'{k}_target/'
             elif noise_type == 'sn' and p is None:
@@ -248,11 +247,10 @@ def get(npp_params, clean, physical=False, partial=None, noise_type='npp', proce
             save_file = os.path.join(save_dirk, 's{}.mat')
             if not os.path.exists(save_dirk):
                 os.makedirs(save_dirk)
-            # channel_idx=channel_idx1[int(partial * 32 * k):int(partial * 32 * (k + 1))]
+
             if noise_type=='npp' and p is None:
                 channel_idx = channel_idx1[int(partial * 32 * k*0.5):int(partial * 32 * (k*0.5 + 1))]
-                #
-                # channel_idx = channel_idx1[int(partial * 32 * k):int(partial * 32 * (k + 1))]
+      
             elif noise_type == 'sn' and p is None:
                 npp = sn_noise([1, 32, int(sample_freq)], code1[k])
                 npp_params[0] = sn_amp
@@ -282,7 +280,7 @@ def get(npp_params, clean, physical=False, partial=None, noise_type='npp', proce
                         y = np.zeros(shape=[len(stimuli)])
                         y[np.where(stimuli == target)] = 1
                         labels.append(y)
-                        # sys
+        
                         if not clean:
                             if noise_type=='Filter':EEG = EEG @ filter[k]
                             if noise_type == 'npp':
@@ -316,7 +314,7 @@ def get(npp_params, clean, physical=False, partial=None, noise_type='npp', proce
                                                                                              (1, 0))
                                     elif noise_type=='npp':EEG[idx:int(idx + 0.4 * sample_freq), :] += np.transpose(npp.squeeze() * amplitude,
                                                                                              (1, 0))
-                                    # else :EEG[idx:int(idx +sample_freq), :] = EEG[idx:int(idx +sample_freq), :] @ filter[k]
+              
 
 
                         sig_F = bandpass(EEG, [1.0, 40.0], sample_freq)
@@ -347,8 +345,7 @@ def get(npp_params, clean, physical=False, partial=None, noise_type='npp', proce
                 labels = np.squeeze(np.concatenate(labels)).astype(np.int16)
                 e = standard_normalize(e)
                 x = standard_normalize(x)
-                if  clean == True and p is not None:
-                    x=average_referencing(x,channel_idx)
+   
 
                 io.savemat(save_file.format(s), {'eeg': e[:, np.newaxis, :, :],
                                                  'x': x[:, np.newaxis, :, :], 'y': labels})
