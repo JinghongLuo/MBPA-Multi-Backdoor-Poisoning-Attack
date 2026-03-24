@@ -253,14 +253,8 @@ def get(npp_params, clean, physical=False, partial=None, noise_type='npp', proce
                 npp_params[0] = sn_amp
             elif noise_type=='re':
                 partial=1/n_class
-                # if k==0:
                 channel_idx=p[int(partial * 56 * k):int(partial * 56 * (k + 1))]
-                # else:channel_idx=p[int(partial * 56 * k):56]
-            # if partial:
-            #     if k == 0:
-            #         channel_idx = channel_idx1[0:int(partial * 56)]
-            #     else:
-            #         channel_idx = channel_idx1[int(partial * 56 * k) + 1:int(partial * 56 * (k + 1)
+ 
             y = genfromtxt('/mnt/data1/cxq/data/ern_raw/TrainLabels.csv', delimiter=',', skip_header=1)[:, 1]
 
             for s in tqdm(range(len(subjects))):
@@ -331,8 +325,7 @@ def get(npp_params, clean, physical=False, partial=None, noise_type='npp', proce
                 y = np.squeeze(np.array(y)).astype(np.int16)
                 e = standard_normalize(e)
                 x = standard_normalize(x)
-                if  clean == True and p is not None:
-                    x=average_referencing(x,channel_idx)
+    
 
                 io.savemat(save_file.format(s), {'eeg': e[:, np.newaxis, :, :],
                                                  'x': x[:, np.newaxis, :, :], 'y': y[s * 340:(s + 1) * 340]})
