@@ -8,11 +8,10 @@ import numpy as np
 from scipy.signal import butter, lfilter, resample
 from tqdm import tqdm
 from methods import pulse_noise, swatooth_noise, sin_noise, sign_noise, chirp_noise,sn_noise,fre_noise
-# from muti_backdoor_withNPP import n_class
+
 from utils.asr import asr
 import os
 
-#
 
 def bandpass(sig, band, fs):
     B, A = butter(5, np.array(band) / (fs / 2), btype='bandpass')
@@ -42,7 +41,7 @@ def surface_laplacian(eeg, data_name):
     epochs = mne.EpochsArray(eeg.squeeze(), info)
     epochs_sl = mne.preprocessing.compute_current_source_density(epochs)
     return epochs_sl.get_data()
-# 11.12
+# 
 def average_referencing(eeg,p=None):
     if p is None:
         eeg_ar = eeg - np.mean(eeg, axis=-2, keepdims=True)
@@ -181,22 +180,6 @@ def get(npp_params, clean, physical=False, partial=None, noise_type='npp', proce
             labels = np.squeeze(np.concatenate(labels, axis=0)).astype(np.int16)
             e = standard_normalize(e)
             x = standard_normalize(x)
-            # data_align = []
-            # length = len(x)
-            # rf_matrix = np.dot(x[0], np.transpose(x[0]))
-            # for i in range(1, length):
-            #     rf_matrix += np.dot(x[i], np.transpose(x[i]))
-            # rf_matrix /= length
-            #
-            # rf = la.inv(la.sqrtm(rf_matrix))
-            # if rf.dtype == complex:
-            #     rf = rf.astype(np.float64)
-            #
-            # for i in range(length):
-            #     data_align.append(np.dot(rf, x[i]))
-            #
-            # return np.asarray(data_align).squeeze(), rf
-            #
             io.savemat(save_file.format(s), {'eeg': e[:, np.newaxis, :, :],
                                              'x': x[:, np.newaxis, :, :], 'y': labels})
     else:
@@ -270,7 +253,7 @@ def get(npp_params, clean, physical=False, partial=None, noise_type='npp', proce
             if noise_type=='npp' and p is None:
                 channel_idx = channel_idx1[int(partial * 22 * k*0.5):int(partial * 22 * (k*0.5 + 1))]
 
-                # channel_idx = channel_idx1[int(partial * 22 * k):int(partial * 22 * (k + 1))]
+            
             #
             elif noise_type=='sn' and p is None:
                 npp = sn_noise([1, 22, int(epoc_window)], code1[k])
@@ -283,15 +266,6 @@ def get(npp_params, clean, physical=False, partial=None, noise_type='npp', proce
                 partial=1/n_class
                 channel_idx=p[int(partial * 22 * k):int(partial * 22 * (k + 1))]
 
-            # if partial:
-            #     # channel_idx = np.arange(22)
-            #
-            #     if k == 0:
-            #         channel_idx = channel_idx1[0:int(partial * 22)]
-            #     else:
-            #         channel_idx = channel_idx1[int(partial * 22 * k) + 1:int(partial * 22 * (k + 1))]
-            # else:
-            #     break
 
             for s in tqdm(range(len(subjects))):
                 x = []
@@ -340,7 +314,7 @@ def get(npp_params, clean, physical=False, partial=None, noise_type='npp', proce
                                               sample_freq=sample_freq)
 
                         amplitude = np.mean(np.std(EEG, axis=0)) * npp_params[0]
-                        # tiao zheng
+       
                         for _, idx in enumerate(trial):
                             if physical:
                                 npp = pulse_noise([1, 22, int(epoc_window)], freq=npp_params[1],
@@ -382,7 +356,7 @@ def get(npp_params, clean, physical=False, partial=None, noise_type='npp', proce
                 e = np.transpose(e, (0, 2, 1))
                 x = np.array(x)
                 x = np.transpose(x, (0, 2, 1))
-                # yuewanwan haolanman daozuihou biande tebie dehaokan yue
+    
                 if process == 'ar':
                     x = average_referencing(x)
                 elif process == 'sl':
