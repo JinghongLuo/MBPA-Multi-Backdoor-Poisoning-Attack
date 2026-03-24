@@ -66,7 +66,7 @@ class SAP(nn.Module):
             for i in range(batch_size):
                 count = torch.bincount(indices[i], minlength=n_features)
                 mask[i] = (count > 0).float()
-            q = 1.0 - torch.pow(1.0 - p, K)  # 被选中至少一次的概率
+            q = 1.0 - torch.pow(1.0 - p, K)  
             scaling = 1.0 / (q + 1e-8)
 
             result = x_flat * mask * scaling
@@ -198,7 +198,7 @@ class DeepConvNet(nn.Module):
             nn.MaxPool2d(kernel_size=(1, 2), stride=(1, 2)),
             nn.Dropout(self.dropoutRate)
         )
-        #wls
+
         self.block3 = nn.Sequential(
             nn.Conv2d(in_channels=50, out_channels=100, kernel_size=(1, 5)),
             nn.BatchNorm2d(num_features=100), nn.ELU(),SAP(frac=self.SAP_frac),
