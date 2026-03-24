@@ -141,7 +141,7 @@ def PGD_batch(model: nn.Module,
     model.eval()
     x = x.clone().detach().to(device)
     y = y.clone().detach().to(device)
-    # intro
+
     # craft adversarial examples
     adv_x = x.clone().detach() + torch.empty_like(x).uniform_(-eps, eps)
     for _ in range(steps):
@@ -156,7 +156,7 @@ def PGD_batch(model: nn.Module,
         # projection
         delta = torch.clamp(adv_x - x, min=-eps, max=eps)
         adv_x = (x + delta).detach()
-    # backdoor attack wzns zds zyzdzxdsg
+
     return adv_x
 
 
@@ -292,7 +292,7 @@ def SimBA(model: nn.Module,
 
         if step == 0: adv_x = batch_adv_x
         else: adv_x = torch.cat([adv_x, batch_adv_x], dim=0)
-    # zmsn ljm cdz ygs wlzms !!!!cdz dshhcd!!!!!1!!
+
     return adv_x.cpu(), queries.cpu()
 
 
@@ -327,33 +327,30 @@ def PGD_TRADES(model: nn.Module,
 
     model.eval()
     x = x.clone().detach().to(device)
-    y = y.clone().detach().to(device)  # 虽然不使用，但保留接口兼容性
+    y = y.clone().detach().to(device)  
 
-    # 获取干净样本的预测分布（作为KL散度的目标）
+
     with torch.no_grad():
         logits_natural = model(x)
         prob_natural = F.softmax(logits_natural, dim=1)
 
-    # 初始化对抗样本：干净样本 + 随机噪声
+
     adv_x = x.clone().detach() + torch.empty_like(x).uniform_(-eps, eps)
     adv_x = torch.clamp(adv_x, 0.0, 1.0)
 
-    # 使用KL散度进行PGD攻击
+
     for _ in range(steps):
         adv_x.requires_grad = True
         with torch.enable_grad():
             logits_adv = model(adv_x)
             prob_adv = F.log_softmax(logits_adv, dim=1)
 
-            # 计算KL散度：KL(adv || natural)
             loss_kl = criterion_kl(prob_adv, prob_natural)
 
-        # 计算梯度并更新对抗样本（最大化KL散度）
         grad = torch.autograd.grad(loss_kl, adv_x, retain_graph=False)[0]
 
         adv_x = adv_x.detach() + alpha * torch.sign(grad.detach())
 
-        # 投影到eps球内
         delta = torch.clamp(adv_x - x, min=-eps, max=eps)
         adv_x = torch.clamp(x + delta, 0.0, 1.0).detach()
 
@@ -371,11 +368,9 @@ def TrainSub(model: nn.Module, x_sub: torch.Tensor, y_sub: torch.Tensor,
                        F2=8,
                        dropoutRate=0.25).to(device)
     sub_model.apply(init_weights)
-    # wwww zmsn qss twndwwwwww wwwww
     params = [v for _, v in sub_model.named_parameters()]
     optimizer = optim.Adam(params, lr=0.001, weight_decay=5e-4)
     criterion = nn.CrossEntropyLoss().to(device)
-    # zmsnwww syhstdygrdwssh
     # initial dataset
     model.eval()
     y_sub = get_pred(model, x_sub)
@@ -553,5 +548,4 @@ class RayS(object):
 
 
 
-    # can i defend the npp attack and defend the adversial attack at the same time ?Maybe by pruning the model?
-    #
+
